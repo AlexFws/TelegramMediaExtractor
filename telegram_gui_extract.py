@@ -14,6 +14,14 @@ MAGIC_BYTES = {
     b'OggS': '.ogg',
     b'\x1A\x45\xDF\xA3': '.mkv',
     b'RIFF': '.avi',
+    b'PK\x03\x04': '.zip',
+    b'Rar!': '.rar',
+    b'7z\xBC\xAF\x27\x1C': '.7z',
+    b'\xD0\xCF\x11\xE0': '.doc',
+    b'\x50\x4B\x03\x04': '.docx',
+    b'%!PS': '.ps',
+    b'GIF87a': '.gif',
+    b'GIF89a': '.gif'
 }
 
 def get_extension(file_path):
@@ -30,21 +38,24 @@ def get_extension(file_path):
 def extract_media(source_dir, output_dir):
     os.makedirs(output_dir, exist_ok=True)
     count = 0
+    checked = 0
 
-    for filename in os.listdir(source_dir):
-        filepath = os.path.join(source_dir, filename)
-        if os.path.isfile(filepath):
-            ext = get_extension(filepath)
-            if ext:
-                new_filename = f"{filename}{ext}"
-                new_path = os.path.join(output_dir, new_filename)
-                shutil.copyfile(filepath, new_path)
-                count += 1
+    for root, dirs, files in os.walk(source_dir):
+        for filename in files:
+            filepath = os.path.join(root, filename)
+            if os.path.isfile(filepath):
+                checked += 1
+                ext = get_extension(filepath)
+                if ext:
+                    new_filename = f"{filename}{ext}"
+                    new_path = os.path.join(output_dir, new_filename)
+                    shutil.copyfile(filepath, new_path)
+                    count += 1
 
-    return count
+    return count, checked
 
 def choose_source():
-    path = filedialog.askdirectory(title="Выберите папку D877F783D5D3EF8C")
+    path = filedialog.askdirectory(title="Выберите папку с файлами Telegram")
     if path:
         source_var.set(path)
 
@@ -60,13 +71,16 @@ def run_extraction():
         messagebox.showerror("Ошибка", "Указаны некорректные пути к папкам")
         return
 
-    count = extract_media(source, output)
-    messagebox.showinfo("Готово", f"Скопировано файлов: {count}")
+    count, checked = extract_media(source, output)
+    if count == 0:
+        messagebox.showwarning("Ничего не найдено", f"Проверено файлов: {checked}\nПодходящих медиафайлов не найдено.")
+    else:
+        messagebox.showinfo("Готово", f"Скопировано файлов: {count} из {checked}")
 
 # GUI
 root = tk.Tk()
 root.title("Telegram Media Extractor")
-root.geometry("450x200")
+root.geometry("500x220")
 
 source_var = tk.StringVar()
 output_var = tk.StringVar()
@@ -75,14 +89,13 @@ frame = tk.Frame(root, padx=10, pady=10)
 frame.pack(fill="both", expand=True)
 
 tk.Label(frame, text="Папка с файлами Telegram:").pack(anchor="w")
-tk.Entry(frame, textvariable=source_var, width=50).pack(anchor="w")
+tk.Entry(frame, textvariable=source_var, width=60).pack(anchor="w")
 tk.Button(frame, text="Обзор...", command=choose_source).pack(anchor="w", pady=(0,10))
 
 tk.Label(frame, text="Папка для сохранения:").pack(anchor="w")
-tk.Entry(frame, textvariable=output_var, width=50).pack(anchor="w")
+tk.Entry(frame, textvariable=output_var, width=60).pack(anchor="w")
 tk.Button(frame, text="Обзор...", command=choose_output).pack(anchor="w", pady=(0,10))
 
-btn = tk.Button(frame, text="Начать извлечение", command=run_extraction)
-btn.pack(pady=10)
+tk.Button(frame, text="Начать извлечение", command=run_extraction).pack(pady=10)
 
 root.mainloop()
